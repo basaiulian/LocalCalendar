@@ -1,6 +1,8 @@
+import string
 from datetime import datetime
 
 from ics import Calendar
+
 
 class MyAlarm:
     def __init__(self, trigger, repeat, action):
@@ -58,6 +60,9 @@ class MyCalendar:
 
 
 def custom(current_time, file_content, file_out, file_flag):
+    if check_bad_custom_format(file_content):
+        return
+
     custom_calendar = MyCalendar()
     if file_content[0].strip() == "<Calendar>":
         verificare_event_1, verificare_event_2, verificare_alarm_1, verificare_alarm_2 = 0, 0, 0, 0
@@ -172,7 +177,41 @@ def custom(current_time, file_content, file_out, file_flag):
                                             alarm_date - current_time) + ".\n")
 
 
+
+def check_bad_custom_format(file_content):
+    log_time = datetime.now()
+    log_line = "[ERROR:::" + str(log_time.time()) + ":::] Bad custom file format.\n"
+    content = ""
+    content = content.join(file_content)
+    if content.find("<Calendar>") == -1 or content.find("</Calendar>") == -1 or content.count(
+            "<Event>") != content.count("</Event>") or content.count(
+        "<Alarm>") != content.count("</Alarm>"):
+        print("Bad custom file format.")
+        with open("logs.txt", 'a') as logs:
+            logs.writelines(log_line)
+        return True
+    return False
+
+
+def check_bad_ics_format(file_content):
+    log_time = datetime.now()
+    log_line = "[ERROR:::" + str(log_time.time()) + ":::] Bad ics file format.\n"
+    content = ""
+    content = content.join(file_content)
+    if content.find("BEGIN:VCALENDAR") == -1 or content.find("END:VCALENDAR") == -1 or content.count(
+            "BEGIN:VEVENT") != content.count("END:VEVENT") or content.count(
+        "BEGIN:VALARM") != content.count("END:VALARM"):
+        print("Bad ics file format.")
+        with open("logs.txt", 'a') as logs:
+            logs.writelines(log_line)
+        return True
+    return False
+
+
 def ics(current_time, file_content, file_out, file_flag):
+    if check_bad_ics_format(file_content):
+        return
+
     calendar = Calendar(file_content)
 
     events = list(calendar.events)
@@ -314,6 +353,10 @@ def ics(current_time, file_content, file_out, file_flag):
                                         alarm_date - current_time) + ".\n")
 
 
+with open("logs.txt", "w") as logs:
+    logs.write("========================= LOGS =========================\n")
+
+
 def __main__():
     now = datetime.now()
     # now = datetime(2020, 12, 17, 20, 50, 0)
@@ -330,24 +373,36 @@ def __main__():
         elif choice.strip().lower() == "file":
             file_flag = True
         else:
+            log_time = datetime.now()
+            log_line = "[ERROR:::" + str(log_time.time()) + ":::] Bad choice. Try again!\n"
+            with open("logs.txt", "a") as logs:
+                logs.write(log_line)
             print("Bad choice. Try again!")
 
-    print("What format do you want to check?")
-    print("[1] calendar_file.ics")
-    print("[2] custom_calendar.txt")
-    message = input("Enter 1 or 2: ")
-    if message.strip() == "1":
-        filename = "calendar_file.ics"
-        with open(filename, "r") as file_in:
-            file_content = file_in.read()
-        ics(now, file_content, "event_alerts.txt", file_flag)
-    elif message.strip() == "2":
-        filename = "custom_calendar.txt"
-        with open(filename, "r") as custom_file_in:
-            custom_file_content = custom_file_in.readlines()
-        custom(now, custom_file_content, "event_alerts.txt", file_flag)
-    else:
-        print("Input gresit.")
+    message = ""
+    while message.strip() != "1" or message.strip != "2":
+        print("What format do you want to check?")
+        print("[1] calendar_file.ics")
+        print("[2] custom_calendar.txt")
+        message = input("Enter 1 or 2: ")
+        if message.strip() == "1":
+            filename = "calendar_file.ics"
+            with open(filename, "r") as file_in:
+                file_content = file_in.read()
+            ics(now, file_content, "event_alerts.txt", file_flag)
+            break
+        elif message.strip() == "2":
+            filename = "custom_calendar.txt"
+            with open(filename, "r") as custom_file_in:
+                custom_file_content = custom_file_in.readlines()
+            custom(now, custom_file_content, "event_alerts.txt", file_flag)
+            break
+        else:
+            log_time = datetime.now()
+            log_line = "[ERROR:::" + str(log_time.time()) + ":::] Wrong input. Try again!\n"
+            with open("logs.txt", "a") as logs:
+                logs.write(log_line)
+            print("Wrong input. Try again!")
 
 
 if __name__ == '__main__':
