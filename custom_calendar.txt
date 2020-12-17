@@ -13,8 +13,8 @@
 <Event>
     Name = Wedding
     Description = Party two nights
-    Start_Date = 20201217T140500Z
-    End_Date = 20201217T145000Z
+    Start_Date = 20201217T205000Z
+    End_Date = 20201218T145000Z
     Location = Restaurant
     <Alarm>
         Trigger = 20201217T103500Z
@@ -24,8 +24,8 @@
 <Event>
     Name = Wedding
     Description = Party two nights
-    Start_Date = 20201217T135700Z
-    End_Date = 20201217T145000Z
+    Start_Date = 20201217T205000Z
+    End_Date = 20201218T145000Z
     Location = Restaurant
 </Event>
 </Calendar>
