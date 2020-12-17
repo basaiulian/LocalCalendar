@@ -56,8 +56,128 @@ class MyCalendar:
         for event in self.events:
             print("===============Event===============")
             event.print_me()
-     
- 
+
+
+def custom(current_time, file_content, file_out):
+    custom_calendar = MyCalendar()
+    if file_content[0].strip() == "<Calendar>":
+        verificare_event_1 = 0
+        verificare_event_2 = 0
+        verificare_alarm_1 = 0
+        verificare_alarm_2 = 0
+        name, description, start_date, end_date, location = "", "", "", "", ""
+        trigger, action = "", ""
+        my_custom_alarms_list = list()
+        for (_, line) in enumerate(file_content):
+            if line.strip() == "<Event>":
+                verificare_event_1 = 1
+            if line.strip() == "</Event>":
+                verificare_event_2 = 1
+            if verificare_event_1 == 1:
+                if line.find("Name") != -1:
+                    equal_position = line.find("=")
+                    name = line[equal_position + 1::].strip()
+                elif line.find("Description") != -1:
+                    equal_position = line.find("=")
+                    description = line[equal_position + 1::].strip()
+                elif line.find("Start_Date") != -1:
+                    equal_position = line.find("=")
+                    start_date = line[equal_position + 1::].strip()
+                elif line.find("End_Date") != -1:
+                    equal_position = line.find("=")
+                    end_date = line[equal_position + 1::].strip()
+                elif line.find("Location") != -1:
+                    equal_position = line.find("=")
+                    location = line[equal_position + 1::].strip()
+                elif line.strip() == "<Alarm>":
+                    verificare_alarm_1 = 1
+                elif line.strip() == "</Alarm>":
+                    verificare_alarm_2 = 1
+                elif verificare_alarm_1 == 1:
+                    if line.find("Trigger") != -1:
+                        equal_position = line.find("=")
+                        trigger = line[equal_position + 1::].strip()
+
+                    elif line.find("Action") != -1:
+                        equal_position = line.find("=")
+                        action = line[equal_position + 1::].strip()
+
+
+            if verificare_event_1 == 1 and verificare_event_2 == 1:
+                ok_1 = 0
+                my_custom_alarm = ""
+                if verificare_alarm_1 == 1 and verificare_alarm_2 == 1:
+                    ok_1 = 1
+                    verificare_alarm_1, verificare_alarm_2 = 0, 0
+                    repeat = "None"
+                    my_custom_alarm = MyAlarm(trigger, repeat, action)
+                    # my_custom_alarm.print_me()
+                verificare_event_1, verificare_event_2 = 0, 0
+                my_custom_event = MyEvent(name, description, start_date, end_date, location)
+                if ok_1 == 1:
+                    my_custom_event.alarms.append(my_custom_alarm)
+                    custom_calendar.events.append(my_custom_event)
+                # my_custom_event.print_me()
+    if file_content[-1].strip() == "</Calendar>":
+        # custom_calendar.print_me()
+
+        ########################################################################################
+
+        for event in custom_calendar.events:
+            year = int(str(event.start_date)[0:4])
+            month = int(str(event.start_date)[4:6])
+            day = int(str(event.start_date)[6:8])
+            hour = int(str(event.start_date)[9:11])
+            minute = int(str(event.start_date)[11:13])
+            second = int(str(event.start_date)[13:15])
+            if len(event.alarms) != 0:
+                for alarm in event.alarms:
+
+                    days_position = str(alarm.trigger).find("day")
+                    days_before = str(alarm.trigger)[1:days_position - 1]
+                    if days_position != -1:
+
+                        alarm_start_date = datetime(year, month, day - int(days_before), hour,
+                                                    minute, second)
+                        alarm_end_date = datetime(year, month, day, hour, minute,
+                                                  second)
+
+                        # print("-------")
+                        # print("start" + str(alarm_start_date))
+                        # print("now" + str(current_time))
+                        # print("end" + str(alarm_end_date))
+                        # print("-------")
+                        if alarm_start_date <= current_time <= alarm_end_date:
+                            with open(file_out, "a") as file_o:
+                                print("[TXT_FILE => Eveniment ce urmeaza in cateva zile] Urmeaza un eveniment( " + str(
+                                    event.name) + " ) in " + str(
+                                    alarm_end_date - current_time) + "\n")
+                                file_o.writelines(
+                                    "[TXT_FILE => Eveniment ce urmeaza in cateva zile] Urmeaza un eveniment( " + str(
+                                        event.name) + " ) in " + str(
+                                        alarm_end_date - current_time) + "\n")
+
+                    else:
+                        alarm_date = datetime(year, month, day, hour, minute, second)
+
+                        if str(alarm_date)[0:-3] == str(current_time)[0:-10]:
+                            print("[TXT_FILE => Date si timp exacte] Ai evenimentul " + str(
+                                event.name) + " chiar acum \n")
+                            with open(file_out, "a") as file_o:
+                                file_o.write(
+                                    "[TXT_FILE => Date si timp exacte] Ai evenimentul " + str(
+                                        event.name) + " chiar acum \n")
+                        elif alarm_date >= current_time:
+                            print("[TXT_FILE => Eveniment ce urmeaza] Urmeaza un eveniment( " + str(
+                                event.name) + " ) in " + str(
+                                alarm_date - current_time) + "\n")
+                            with open(file_out, "a") as file_o:
+                                file_o.write(
+                                    "[TXT_FILE => Eveniment ce urmeaza] Urmeaza un eveniment( " + str(
+                                        event.name) + " ) in " + str(
+                                        alarm_date - current_time) + "\n")
+
+
 def ics(current_time, file_content, file_out):
     calendar = Calendar(file_content)
 
@@ -140,12 +260,18 @@ def __main__():
         file_out.write("========================= ALERTS =========================\n")
 
     print("[1] calendar_file.ics")
-    message = input("Introdu 1 sau 2: ") # 2 neimplementat
+    print("[2] custom_calendar.txt")
+    message = input("Introdu 1 sau 2: ")
     if message == "1":
         filename = "calendar_file.ics"
         with open(filename, "r") as file_in:
             file_content = file_in.read()
         ics(now, file_content, "event_alerts.txt")
+    elif message == "2":
+        filename = "custom_calendar.txt"
+        with open(filename, "r") as custom_file_in:
+            custom_file_content = custom_file_in.readlines()
+        custom(now, custom_file_content, "event_alerts.txt")
     else:
         print("Input gresit.")
 

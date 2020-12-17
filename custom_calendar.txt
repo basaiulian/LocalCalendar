@@ -1,0 +1,31 @@
+<Calendar>
+<Event>
+    Name = John's birthday
+    Description = Party all night
+    Start_Date = 20201218T103000Z
+    End_Date = 20211219T083000Z
+    Location = John's home
+    <Alarm>
+        Trigger = -1 day, 23:00:00
+        Action = Display
+    </Alarm>
+</Event>
+<Event>
+    Name = Wedding
+    Description = Party two nights
+    Start_Date = 20201217T140500Z
+    End_Date = 20201217T145000Z
+    Location = Restaurant
+    <Alarm>
+        Trigger = 20201217T103500Z
+        Action = Display
+    </Alarm>
+</Event>
+<Event>
+    Name = Wedding
+    Description = Party two nights
+    Start_Date = 20201217T135700Z
+    End_Date = 20201217T145000Z
+    Location = Restaurant
+</Event>
+</Calendar>
