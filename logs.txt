@@ -1,0 +1,4 @@
+========================= LOGS =========================
+[CHECKING::::::07:58:18.646636::::::] Checking "John's birthday" event.
+[TRIGGERED::::::07:58:18.646636::::::] The alarm for "John's birthday" event was activated.
+[CHECKING::::::07:58:18.648638::::::] Checking "Wedding" event.

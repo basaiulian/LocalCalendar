@@ -1,4 +1,3 @@
-import string
 from datetime import datetime
 
 from ics import Calendar
@@ -58,6 +57,50 @@ class MyCalendar:
             print("===============Event===============")
             event.print_me()
 
+
+def check_bad_custom_format(file_content):
+    log_time = datetime.now()
+    log_line = "[ERROR:::" + str(log_time.time()) + ":::] Bad custom file format.\n"
+    content = ""
+    content = content.join(file_content)
+    if content.find("<Calendar>") == -1 or content.find("</Calendar>") == -1 or content.count(
+            "<Event>") != content.count("</Event>") or content.count(
+        "<Alarm>") != content.count("</Alarm>"):
+        print("Bad custom file format.")
+        with open("logs.txt", 'a') as logs:
+            logs.writelines(log_line)
+        return True
+    return False
+
+
+def check_event_log(name):
+    log_time = datetime.now()
+    log_line = "[CHECKING::::::" + str(log_time.time()) + "::::::] Checking \"" + name + "\" event.\n"
+    with open("logs.txt", 'a') as logs:
+        logs.writelines(log_line)
+
+
+def log_triggered_alarm(name):
+    log_time = datetime.now()
+    log_line = "[TRIGGERED::::::" + str(
+        log_time.time()) + "::::::] The alarm for \"" + name + "\" event was activated.\n"
+    with open("logs.txt", 'a') as logs:
+        logs.writelines(log_line)
+
+
+def check_bad_ics_format(file_content):
+    log_time = datetime.now()
+    log_line = "[ERROR:::" + str(log_time.time()) + ":::] Bad ics file format.\n"
+    content = ""
+    content = content.join(file_content)
+    if content.find("BEGIN:VCALENDAR") == -1 or content.find("END:VCALENDAR") == -1 or content.count(
+            "BEGIN:VEVENT") != content.count("END:VEVENT") or content.count(
+        "BEGIN:VALARM") != content.count("END:VALARM"):
+        print("Bad ics file format.")
+        with open("logs.txt", 'a') as logs:
+            logs.writelines(log_line)
+        return True
+    return False
 
 def custom(current_time, file_content, file_out, file_flag):
     if check_bad_custom_format(file_content):
@@ -129,6 +172,7 @@ def custom(current_time, file_content, file_out, file_flag):
             minute = int(str(event.start_date)[11:13])
             second = int(str(event.start_date)[13:15])
             if len(event.alarms) != 0:
+                check_event_log(event.name)
                 for alarm in event.alarms:
 
                     days_position = str(alarm.trigger).find("day")
@@ -142,10 +186,12 @@ def custom(current_time, file_content, file_out, file_flag):
 
                         if alarm_start_date <= current_time <= alarm_end_date:
                             if not file_flag:
+                                log_triggered_alarm(event.name)
                                 print("[TXT_FILE => Upcoming event] New event ( " + str(
                                     event.name) + ") in " + str(
                                     alarm_end_date - current_time) + ".\n")
                             elif file_flag:
+                                log_triggered_alarm(event.name)
                                 with open(file_out, "a") as file_o:
                                     file_o.writelines(
                                         "[TXT_FILE => Upcoming event] New event ( " + str(
@@ -157,19 +203,23 @@ def custom(current_time, file_content, file_out, file_flag):
 
                         if str(alarm_date)[0:-3] == str(current_time)[0:-10]:
                             if not file_flag:
+                                log_triggered_alarm(event.name)
                                 print("[TXT_FILE => Ongoing event] You have an ongoing event(" + str(
                                     event.name) + ") right now.\n")
                             elif file_flag:
+                                log_triggered_alarm(event.name)
                                 with open(file_out, "a") as file_o:
                                     file_o.write(
                                         "[TXT_FILE => Ongoing event] You have an ongoing event(" + str(
                                             event.name) + ") right now.\n")
                         elif alarm_date >= current_time:
                             if not file_flag:
+                                log_triggered_alarm(event.name)
                                 print("[TXT_FILE => Upcoming event] New event( " + str(
                                     event.name) + ") in " + str(
                                     alarm_date - current_time) + ".\n")
                             elif file_flag:
+                                log_triggered_alarm(event.name)
                                 with open(file_out, "a") as file_o:
                                     file_o.write(
                                         "[TXT_FILE => Upcoming event] New event( " + str(
@@ -177,46 +227,14 @@ def custom(current_time, file_content, file_out, file_flag):
                                             alarm_date - current_time) + ".\n")
 
 
-
-def check_bad_custom_format(file_content):
-    log_time = datetime.now()
-    log_line = "[ERROR:::" + str(log_time.time()) + ":::] Bad custom file format.\n"
-    content = ""
-    content = content.join(file_content)
-    if content.find("<Calendar>") == -1 or content.find("</Calendar>") == -1 or content.count(
-            "<Event>") != content.count("</Event>") or content.count(
-        "<Alarm>") != content.count("</Alarm>"):
-        print("Bad custom file format.")
-        with open("logs.txt", 'a') as logs:
-            logs.writelines(log_line)
-        return True
-    return False
-
-
-def check_bad_ics_format(file_content):
-    log_time = datetime.now()
-    log_line = "[ERROR:::" + str(log_time.time()) + ":::] Bad ics file format.\n"
-    content = ""
-    content = content.join(file_content)
-    if content.find("BEGIN:VCALENDAR") == -1 or content.find("END:VCALENDAR") == -1 or content.count(
-            "BEGIN:VEVENT") != content.count("END:VEVENT") or content.count(
-        "BEGIN:VALARM") != content.count("END:VALARM"):
-        print("Bad ics file format.")
-        with open("logs.txt", 'a') as logs:
-            logs.writelines(log_line)
-        return True
-    return False
-
-
-def ics(current_time, file_content, file_out, file_flag):
+def create_ics_calendar(file_content):
+    my_calendar = MyCalendar()
     if check_bad_ics_format(file_content):
-        return
+        return True, my_calendar
 
     calendar = Calendar(file_content)
 
     events = list(calendar.events)
-
-    my_calendar = MyCalendar()
 
     for event in events:
         my_event = MyEvent(event.name, event.description, event.begin, event.end, event.location)
@@ -225,132 +243,151 @@ def ics(current_time, file_content, file_out, file_flag):
             my_event.add_alarm(my_alarm)
         my_calendar.add_event(my_event)
 
-    for event in my_calendar.events:
-        if len(event.alarms) != 0:
-            for alarm in event.alarms:
-                repeat = ""
-                days_position = str(alarm.trigger).find("day")
-                if days_position != -1:
-                    days_before = str(alarm.trigger)[1:days_position - 1]
-                    year = int(str(event.start_date)[0:4])
-                    month = int(str(event.start_date)[5:7])
-                    day = int(str(event.start_date)[8:10])
-                    hour = int(str(event.start_date)[11:13])
-                    minute = int(str(event.start_date)[14:16])
-                    second = int(str(event.start_date)[17:19])
+    return False, my_calendar
 
-                    if str(alarm.repeat) != "None":
-                        repeat = int(str(alarm.repeat))
 
-                        if hour - int(repeat) <= 0:
+def ics(current_time, file_content, file_out, file_flag):
+    error_flag, my_calendar = create_ics_calendar(file_content)
 
-                            difference = int(repeat) - hour
-                            # print("diferenta zi trecuta: " + str(difference))
-                            last_day = difference
-                            # print("diferenta zi curenta: " + str(int(repeat) - difference))
-                            current_day = int(repeat) - difference
-                            repeat_start_date = datetime(year, month, day - 1, 24 - difference,
-                                                         minute, second)
+    if not error_flag:
 
-                            # print("Alarma se va repeta incepand cu: " + str(repeat_start_date))
+        for event in my_calendar.events:
+            if len(event.alarms) != 0:
+                check_event_log(event.name)
+                for alarm in event.alarms:
+                    repeat = ""
+                    days_position = str(alarm.trigger).find("day")
+                    if days_position != -1:
+                        days_before = str(alarm.trigger)[1:days_position - 1]
+                        year = int(str(event.start_date)[0:4])
+                        month = int(str(event.start_date)[5:7])
+                        day = int(str(event.start_date)[8:10])
+                        hour = int(str(event.start_date)[11:13])
+                        minute = int(str(event.start_date)[14:16])
+                        second = int(str(event.start_date)[17:19])
 
-                            start_date_event = datetime(year, month, day, hour,
-                                                        minute, second)
+                        if str(alarm.repeat) != "None":
+                            repeat = int(str(alarm.repeat))
 
-                            while last_day != 0:
-                                repeat_start_date = datetime(year, month, day - 1,
-                                                             24 - last_day,
-                                                             minute, second)
-                                # print(repeat_start_date)
-                                if current_time == repeat_start_date:
-                                    if not file_flag:
-                                        print(
-                                            "[ICS_FILE => Upcoming event] New event( " + str(
-                                                event.name) + ") in " + str(
-                                                start_date_event - current_time) + ".\n")
-                                    elif file_flag == True:
-                                        with open(file_out, "a") as file_o:
-                                            file_o.writelines("[ICS_FILE => Upcoming event] New event( " + str(
-                                                event.name) + ") in " + str(
-                                                start_date_event - current_time) + ".\n")
+                            if hour - int(repeat) <= 0:
 
-                                last_day -= 1
-                            count = 0
-                            while count <= current_day:
-
-                                repeat_start_date = datetime(year, month, day,
-                                                             0 + count,
+                                difference = int(repeat) - hour
+                                # print("diferenta zi trecuta: " + str(difference))
+                                last_day = difference
+                                # print("diferenta zi curenta: " + str(int(repeat) - difference))
+                                current_day = int(repeat) - difference
+                                repeat_start_date = datetime(year, month, day - 1, 24 - difference,
                                                              minute, second)
 
-                                # afisez fiecare datetime la care ar trebui sa sune alarma cu repeat
-                                # print(repeat_start_date)
+                                # print("Alarma se va repeta incepand cu: " + str(repeat_start_date))
 
-                                if current_time == repeat_start_date:
-                                    if not file_flag:
-                                        print(
-                                            "[ICS_FILE => Upcoming event] New event( " + str(
-                                                event.name) + ") in " + str(
-                                                start_date_event - current_time) + ".\n")
-                                    elif file_flag:
-                                        with open(file_out, "a") as file_o:
-                                            file_o.writelines("[ICS_FILE => Upcoming event] New event( " + str(
-                                                event.name) + ") in " + str(
-                                                start_date_event - current_time) + ".\n")
+                                start_date_event = datetime(year, month, day, hour,
+                                                            minute, second)
 
-                                count += 1
+                                while last_day != 0:
+                                    repeat_start_date = datetime(year, month, day - 1,
+                                                                 24 - last_day,
+                                                                 minute, second)
+                                    # print(repeat_start_date)
+                                    if current_time == repeat_start_date:
+                                        if not file_flag:
+                                            log_triggered_alarm(event.name)
+                                            print(
+                                                "[ICS_FILE => Upcoming event] New event( " + str(
+                                                    event.name) + ") in " + str(
+                                                    start_date_event - current_time) + ".\n")
+                                        elif file_flag == True:
+                                            log_triggered_alarm(event.name)
+                                            with open(file_out, "a") as file_o:
+                                                file_o.writelines("[ICS_FILE => Upcoming event] New event( " + str(
+                                                    event.name) + ") in " + str(
+                                                    start_date_event - current_time) + ".\n")
 
-                        else:
-                            repeat_start_date = datetime(year, month, day, hour - int(repeat),
-                                                         minute, second)
-                            print(repeat_start_date)
+                                    last_day -= 1
+                                count = 0
+                                while count <= current_day:
 
-                    alarm_start_date = datetime(year, month, day - int(days_before), hour,
-                                                minute, second)
-                    alarm_end_date = datetime(year, month, day, hour, minute,
-                                              second)
+                                    repeat_start_date = datetime(year, month, day,
+                                                                 0 + count,
+                                                                 minute, second)
 
-                    if alarm_start_date <= current_time <= alarm_end_date:
-                        if not file_flag:
-                            print("[ICS_FILE => Upcoming event] New event (" + str(
-                                event.name) + ") in " + str(
-                                alarm_end_date - current_time) + ".\n")
-                        elif file_flag:
-                            with open(file_out, "a") as file_o:
-                                file_o.writelines(
-                                    "[ICS_FILE => Upcoming event] New event (" + str(
-                                        event.name) + ") in " + str(
-                                        alarm_end_date - current_time) + ".\n")
+                                    # afisez fiecare datetime la care ar trebui sa sune alarma cu repeat
+                                    # print(repeat_start_date)
 
-                else:
-                    year = int(str(event.start_date)[0:4])
-                    month = int(str(event.start_date)[5:7])
-                    day = int(str(event.start_date)[8:10])
-                    hour = int(str(event.start_date)[11:13])
-                    minute = int(str(event.start_date)[14:16])
-                    second = int(str(event.start_date)[17:19])
-                    alarm_date = datetime(year, month, day, hour, minute, second)
+                                    if current_time == repeat_start_date:
+                                        if not file_flag:
+                                            log_triggered_alarm(event.name)
+                                            print(
+                                                "[ICS_FILE => Upcoming event] New event( " + str(
+                                                    event.name) + ") in " + str(
+                                                    start_date_event - current_time) + ".\n")
+                                        elif file_flag:
+                                            log_triggered_alarm(event.name)
+                                            with open(file_out, "a") as file_o:
+                                                file_o.writelines("[ICS_FILE => Upcoming event] New event( " + str(
+                                                    event.name) + ") in " + str(
+                                                    start_date_event - current_time) + ".\n")
 
-                    if str(alarm_date)[0:-3] == str(current_time)[0:-10]:
-                        if not file_flag:
-                            print("[ICS_FILE => Ongoing event] You have an ongoing event(" + str(
-                                event.name) + ") right now. \n")
-                        elif file_flag:
-                            with open(file_out, "a") as file_o:
-                                file_o.write(
-                                    "[ICS_FILE => Ongoing event] You have an ongoing event(" + str(
-                                        event.name) + ") right now.\n")
+                                    count += 1
 
-                    elif alarm_date >= current_time:
-                        if not file_flag:
-                            print("[ICS_FILE => Upcoming event] New event( " + str(
-                                event.name) + ") in " + str(
-                                alarm_date - current_time) + ".\n")
-                        elif file_flag:
-                            with open(file_out, "a") as file_o:
-                                file_o.write(
-                                    "[ICS_FILE => Upcoming event] New event( " + str(
-                                        event.name) + " ) in " + str(
-                                        alarm_date - current_time) + ".\n")
+                            else:
+                                repeat_start_date = datetime(year, month, day, hour - int(repeat),
+                                                             minute, second)
+                                print(repeat_start_date)
+
+                        alarm_start_date = datetime(year, month, day - int(days_before), hour,
+                                                    minute, second)
+                        alarm_end_date = datetime(year, month, day, hour, minute,
+                                                  second)
+
+                        if alarm_start_date <= current_time <= alarm_end_date:
+                            if not file_flag:
+                                log_triggered_alarm(event.name)
+                                print("[ICS_FILE => Upcoming event] New event (" + str(
+                                    event.name) + ") in " + str(
+                                    alarm_end_date - current_time) + ".\n")
+                            elif file_flag:
+                                log_triggered_alarm(event.name)
+                                with open(file_out, "a") as file_o:
+                                    file_o.writelines(
+                                        "[ICS_FILE => Upcoming event] New event (" + str(
+                                            event.name) + ") in " + str(
+                                            alarm_end_date - current_time) + ".\n")
+
+                    else:
+                        year = int(str(event.start_date)[0:4])
+                        month = int(str(event.start_date)[5:7])
+                        day = int(str(event.start_date)[8:10])
+                        hour = int(str(event.start_date)[11:13])
+                        minute = int(str(event.start_date)[14:16])
+                        second = int(str(event.start_date)[17:19])
+                        alarm_date = datetime(year, month, day, hour, minute, second)
+
+                        if str(alarm_date)[0:-3] == str(current_time)[0:-10]:
+                            if not file_flag:
+                                log_triggered_alarm(event.name)
+                                print("[ICS_FILE => Ongoing event] You have an ongoing event(" + str(
+                                    event.name) + ") right now. \n")
+                            elif file_flag:
+                                log_triggered_alarm(event.name)
+                                with open(file_out, "a") as file_o:
+                                    file_o.write(
+                                        "[ICS_FILE => Ongoing event] You have an ongoing event(" + str(
+                                            event.name) + ") right now.\n")
+
+                        elif alarm_date >= current_time:
+                            if not file_flag:
+                                log_triggered_alarm(event.name)
+                                print("[ICS_FILE => Upcoming event] New event( " + str(
+                                    event.name) + ") in " + str(
+                                    alarm_date - current_time) + ".\n")
+                            elif file_flag:
+                                log_triggered_alarm(event.name)
+                                with open(file_out, "a") as file_o:
+                                    file_o.write(
+                                        "[ICS_FILE => Upcoming event] New event( " + str(
+                                            event.name) + " ) in " + str(
+                                            alarm_date - current_time) + ".\n")
 
 
 with open("logs.txt", "w") as logs:
