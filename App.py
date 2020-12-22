@@ -2,6 +2,10 @@ from datetime import datetime
 
 from ics import Calendar
 
+"""
+Custom class for VALERT(ics) and <Alarm>(custom format)
+"""
+
 
 class MyAlarm:
     def __init__(self, trigger, repeat, action):
@@ -16,6 +20,11 @@ class MyAlarm:
         print("Trigger: " + str(self.trigger))
         print("Repeat: " + str(self.repeat))
         print("Action: " + str(self.action))
+
+
+"""
+Custom class for VEVENT(ics) and <Event>(custom format)
+"""
 
 
 class MyEvent:
@@ -45,6 +54,11 @@ class MyEvent:
             print("Alarms: None")
 
 
+"""
+Custom class for VCALENDAR(ics) and <Calendar>(custom format)
+"""
+
+
 class MyCalendar:
     def __init__(self):
         self.events = list()
@@ -58,11 +72,20 @@ class MyCalendar:
             event.print_me()
 
 
+"""
+Function for checking opening and closing tags for custom format.
+"""
+
+
 def check_bad_custom_format(file_content):
     log_time = datetime.now()
-    log_line = "[ERROR:::" + str(log_time.time()) + ":::] Bad custom file format.\n"
+    log_line = "[ERROR:::" + str(log_time.time()) + ":::] Bad custom file format. Check opening and closing tags.\n"
+
     content = ""
     content = content.join(file_content)
+
+    tags = list()
+
     if content.find("<Calendar>") == -1 or content.find("</Calendar>") == -1 or content.count(
             "<Event>") != content.count("</Event>") or content.count(
         "<Alarm>") != content.count("</Alarm>"):
@@ -70,29 +93,59 @@ def check_bad_custom_format(file_content):
         with open("logs.txt", 'a') as logs:
             logs.writelines(log_line)
         return True
+    else:
+        for (_, line) in enumerate(file_content):
+            if line.find("Event>") != -1:
+                tags.append(line)
+
+        if any(i == j for i, j in zip(tags, tags[1:])):
+            print("Bad custom file format(Check open and close tags).")
+            with open("logs.txt", 'a') as logs:
+                logs.writelines(log_line)
+            return True
+
     return False
+
+
+"""
+Writing a log for each checked event
+"""
 
 
 def check_event_log(name):
     log_time = datetime.now()
     log_line = "[CHECKING::::::" + str(log_time.time()) + "::::::] Checking \"" + name + "\" event.\n"
+
     with open("logs.txt", 'a') as logs:
         logs.writelines(log_line)
 
 
-def log_triggered_alarm(name):
+"""
+Writing a log for each triggered alarm
+"""
+
+
+def log_activated_alarm(name):
     log_time = datetime.now()
     log_line = "[TRIGGERED::::::" + str(
         log_time.time()) + "::::::] The alarm for \"" + name + "\" event was activated.\n"
+
     with open("logs.txt", 'a') as logs:
         logs.writelines(log_line)
+
+
+"""
+Function for checking opening and closing tags for ics format.
+"""
 
 
 def check_bad_ics_format(file_content):
     log_time = datetime.now()
-    log_line = "[ERROR:::" + str(log_time.time()) + ":::] Bad ics file format.\n"
+    log_line = "[ERROR:::" + str(log_time.time()) + ":::] Bad ics file format. Check opening and closing tags.\n"
+
     content = ""
     content = content.join(file_content)
+
     if content.find("BEGIN:VCALENDAR") == -1 or content.find("END:VCALENDAR") == -1 or content.count(
             "BEGIN:VEVENT") != content.count("END:VEVENT") or content.count(
         "BEGIN:VALARM") != content.count("END:VALARM"):
@@ -101,6 +154,12 @@ def check_bad_ics_format(file_content):
             logs.writelines(log_line)
         return True
     return False
+
+
+"""
+Processing the calendar 
+"""
+
 
 def custom(current_time, file_content, file_out, file_flag):
     if check_bad_custom_format(file_content):
@@ -175,6 +234,8 @@ def custom(current_time, file_content, file_out, file_flag):
                 check_event_log(event.name)
                 for alarm in event.alarms:
 
+                    # ===PxD===
+
                     days_position = str(alarm.trigger).find("day")
                     days_before = str(alarm.trigger)[1:days_position - 1]
                     if days_position != -1:
@@ -186,12 +247,12 @@ def custom(current_time, file_content, file_out, file_flag):
 
                         if alarm_start_date <= current_time <= alarm_end_date:
                             if not file_flag:
-                                log_triggered_alarm(event.name)
+                                log_activated_alarm(event.name)
                                 print("[TXT_FILE => Upcoming event] New event ( " + str(
                                     event.name) + ") in " + str(
                                     alarm_end_date - current_time) + ".\n")
                             elif file_flag:
-                                log_triggered_alarm(event.name)
+                                log_activated_alarm(event.name)
                                 with open(file_out, "a") as file_o:
                                     file_o.writelines(
                                         "[TXT_FILE => Upcoming event] New event ( " + str(
@@ -203,28 +264,33 @@ def custom(current_time, file_content, file_out, file_flag):
 
                         if str(alarm_date)[0:-3] == str(current_time)[0:-10]:
                             if not file_flag:
-                                log_triggered_alarm(event.name)
+                                log_activated_alarm(event.name)
                                 print("[TXT_FILE => Ongoing event] You have an ongoing event(" + str(
                                     event.name) + ") right now.\n")
                             elif file_flag:
-                                log_triggered_alarm(event.name)
+                                log_activated_alarm(event.name)
                                 with open(file_out, "a") as file_o:
                                     file_o.write(
                                         "[TXT_FILE => Ongoing event] You have an ongoing event(" + str(
                                             event.name) + ") right now.\n")
                         elif alarm_date >= current_time:
                             if not file_flag:
-                                log_triggered_alarm(event.name)
+                                log_activated_alarm(event.name)
                                 print("[TXT_FILE => Upcoming event] New event( " + str(
                                     event.name) + ") in " + str(
                                     alarm_date - current_time) + ".\n")
                             elif file_flag:
-                                log_triggered_alarm(event.name)
+                                log_activated_alarm(event.name)
                                 with open(file_out, "a") as file_o:
                                     file_o.write(
                                         "[TXT_FILE => Upcoming event] New event( " + str(
                                             event.name) + ") in " + str(
                                             alarm_date - current_time) + ".\n")
+
+
+"""
+Parsing ics file and creating alarms, events and the calendar.
+"""
 
 
 def create_ics_calendar(file_content):
@@ -244,6 +310,11 @@ def create_ics_calendar(file_content):
         my_calendar.add_event(my_event)
 
     return False, my_calendar
+
+
+"""
+Processing the calendar 
+"""
 
 
 def ics(current_time, file_content, file_out, file_flag):
@@ -291,13 +362,13 @@ def ics(current_time, file_content, file_out, file_flag):
                                     # print(repeat_start_date)
                                     if current_time == repeat_start_date:
                                         if not file_flag:
-                                            log_triggered_alarm(event.name)
+                                            log_activated_alarm(event.name)
                                             print(
                                                 "[ICS_FILE => Upcoming event] New event( " + str(
                                                     event.name) + ") in " + str(
                                                     start_date_event - current_time) + ".\n")
                                         elif file_flag == True:
-                                            log_triggered_alarm(event.name)
+                                            log_activated_alarm(event.name)
                                             with open(file_out, "a") as file_o:
                                                 file_o.writelines("[ICS_FILE => Upcoming event] New event( " + str(
                                                     event.name) + ") in " + str(
@@ -312,17 +383,17 @@ def ics(current_time, file_content, file_out, file_flag):
                                                                  minute, second)
 
                                     # afisez fiecare datetime la care ar trebui sa sune alarma cu repeat
-                                    # print(repeat_start_date)
+                                    print(repeat_start_date)
 
                                     if current_time == repeat_start_date:
                                         if not file_flag:
-                                            log_triggered_alarm(event.name)
+                                            log_activated_alarm(event.name)
                                             print(
                                                 "[ICS_FILE => Upcoming event] New event( " + str(
                                                     event.name) + ") in " + str(
                                                     start_date_event - current_time) + ".\n")
                                         elif file_flag:
-                                            log_triggered_alarm(event.name)
+                                            log_activated_alarm(event.name)
                                             with open(file_out, "a") as file_o:
                                                 file_o.writelines("[ICS_FILE => Upcoming event] New event( " + str(
                                                     event.name) + ") in " + str(
@@ -342,12 +413,12 @@ def ics(current_time, file_content, file_out, file_flag):
 
                         if alarm_start_date <= current_time <= alarm_end_date:
                             if not file_flag:
-                                log_triggered_alarm(event.name)
+                                log_activated_alarm(event.name)
                                 print("[ICS_FILE => Upcoming event] New event (" + str(
                                     event.name) + ") in " + str(
                                     alarm_end_date - current_time) + ".\n")
                             elif file_flag:
-                                log_triggered_alarm(event.name)
+                                log_activated_alarm(event.name)
                                 with open(file_out, "a") as file_o:
                                     file_o.writelines(
                                         "[ICS_FILE => Upcoming event] New event (" + str(
@@ -365,11 +436,11 @@ def ics(current_time, file_content, file_out, file_flag):
 
                         if str(alarm_date)[0:-3] == str(current_time)[0:-10]:
                             if not file_flag:
-                                log_triggered_alarm(event.name)
+                                log_activated_alarm(event.name)
                                 print("[ICS_FILE => Ongoing event] You have an ongoing event(" + str(
                                     event.name) + ") right now. \n")
                             elif file_flag:
-                                log_triggered_alarm(event.name)
+                                log_activated_alarm(event.name)
                                 with open(file_out, "a") as file_o:
                                     file_o.write(
                                         "[ICS_FILE => Ongoing event] You have an ongoing event(" + str(
@@ -377,12 +448,12 @@ def ics(current_time, file_content, file_out, file_flag):
 
                         elif alarm_date >= current_time:
                             if not file_flag:
-                                log_triggered_alarm(event.name)
+                                log_activated_alarm(event.name)
                                 print("[ICS_FILE => Upcoming event] New event( " + str(
                                     event.name) + ") in " + str(
                                     alarm_date - current_time) + ".\n")
                             elif file_flag:
-                                log_triggered_alarm(event.name)
+                                log_activated_alarm(event.name)
                                 with open(file_out, "a") as file_o:
                                     file_o.write(
                                         "[ICS_FILE => Upcoming event] New event( " + str(
@@ -396,7 +467,8 @@ with open("logs.txt", "w") as logs:
 
 def __main__():
     now = datetime.now()
-    # now = datetime(2020, 12, 17, 20, 50, 0)
+    # now = datetime(2020, 12, 22, 9, 35, 0)
+
     with open("event_alerts.txt", "w") as file_out:
         file_out.write("========================= ALERTS =========================\n")
 
